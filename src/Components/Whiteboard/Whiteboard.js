@@ -1,6 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-// import { doc, updateDoc, onSnapshot, arrayUnion } from "firebase/firestore";
-// import { db } from "./firebase"; // Import your Firebase configuration
+import {
+  doc,
+  updateDoc,
+  onSnapshot,
+  arrayUnion,
+  setDoc,
+  getDoc,
+} from "firebase/firestore";
+// import { db } from "../../firebase/firebaseConfig";
+import {db} from "../../Firebase"
 
 const Whiteboard = ({ boardId }) => {
   const canvasRef = useRef(null);
@@ -9,8 +17,7 @@ const Whiteboard = ({ boardId }) => {
   const [tool, setTool] = useState("pen"); // 'pen' or 'eraser'
   const [color, setColor] = useState("#000000");
   const [lineWidth, setLineWidth] = useState(5);
-
-  const [strokes, setStrokes] = useState([]); // Store strokes locally
+  const [strokes, setStrokes] = useState([]); // Local strokes
 
   // Initialize Canvas
   useEffect(() => {
@@ -22,16 +29,16 @@ const Whiteboard = ({ boardId }) => {
     ctxRef.current = ctx;
 
     // Load existing strokes from Firebase
-    // const boardRef = doc(db, "boards", boardId);
-    // const unsubscribe = onSnapshot(boardRef, (snapshot) => {
-    //   const data = snapshot.data();
-    //   if (data?.strokes) {
-    //     setStrokes(data.strokes);
-    //     redrawCanvas(data.strokes);
-    //   }
-    // });
+    const boardRef = doc(db, "boards", boardId);
+    const unsubscribe = onSnapshot(boardRef, (snapshot) => {
+      const data = snapshot.data();
+      if (data?.strokes) {
+        setStrokes(data.strokes);
+        redrawCanvas(data.strokes);
+      }
+    });
 
-    // return () => unsubscribe();
+    return () => unsubscribe();
   }, [boardId]);
 
   // Redraw the entire canvas
@@ -98,15 +105,34 @@ const Whiteboard = ({ boardId }) => {
   const stopDrawing = async () => {
     setIsDrawing(false);
 
-    // const boardRef = doc(db, "boards", boardId);
-    // const lastStroke = strokes[strokes.length - 1];
+    const boardRef = doc(db, "boards", boardId);
+    const lastStroke = strokes[strokes.length - 1];
 
-    // if (lastStroke) {
-    //   await updateDoc(boardRef, {
-    //     strokes: arrayUnion(lastStroke),
-    //   });
-    // }
+    // Save the last stroke to Firebase
+    if (lastStroke) {
+      await updateDoc(boardRef, {
+        strokes: arrayUnion(lastStroke),
+      });
+    }
   };
+
+  // Create a new board if it doesn't exist
+  useEffect(() => {
+    const createBoard = async () => {
+      const boardRef = doc(db, "boards", boardId);
+      const boardSnap = await getDoc(boardRef);
+
+      if (!boardSnap.exists()) {
+        await setDoc(boardRef, {
+          strokes: [],
+          ownerId: "owner-id-placeholder", // Replace with actual user ID
+          editors: ["editor-id-placeholder"], // Replace with actual editor IDs
+        });
+      }
+    };
+
+    createBoard();
+  }, [boardId]);
 
   return (
     <div>

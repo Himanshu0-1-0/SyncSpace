@@ -7,13 +7,13 @@ import {BrowserRouter as Router, Routes, Route} from "react-router-dom";
 function App() {
 
   const[isAuth, setIsAuth] = useState(localStorage.getItem("isAuth"));
-
+  const boardId = "unique-board-id2"
 
   return (
     <Router>
     <Routes>
       <Route path="/" element={<Home isAuth={isAuth}/>} />
-      <Route path="/whiteboard" element={<Whiteboard/>} />
+      <Route path="/whiteboard" element={<Whiteboard boardId={boardId}/>} />
       <Route path="/login" element={<Login setIsAuth={setIsAuth}/>} />
     </Routes>
   </Router>
