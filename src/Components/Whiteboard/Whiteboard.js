@@ -1,23 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  doc,
-  updateDoc,
-  onSnapshot,
-  arrayUnion,
-  setDoc,
-  getDoc,
-} from "firebase/firestore";
-// import { db } from "../../firebase/firebaseConfig";
-import {db} from "../../Firebase"
+import { doc, updateDoc, arrayUnion, setDoc, getDoc,onSnapshot } from "firebase/firestore";
+import { db } from "../../Firebase";
 
-const Whiteboard = ({ boardId }) => {
+
+const Whiteboard = ({ boardId, userId }) => {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState("pen"); // 'pen' or 'eraser'
   const [color, setColor] = useState("#000000");
   const [lineWidth, setLineWidth] = useState(5);
+
   const [strokes, setStrokes] = useState([]); // Local strokes
+  const [liveStrokes, setLiveStrokes] = useState([]); // Synced strokes from Firestore
 
   // Initialize Canvas
   useEffect(() => {
@@ -28,12 +23,12 @@ const Whiteboard = ({ boardId }) => {
     ctx.lineCap = "round";
     ctxRef.current = ctx;
 
-    // Load existing strokes from Firebase
+    // Sync strokes from Firestore
     const boardRef = doc(db, "boards", boardId);
     const unsubscribe = onSnapshot(boardRef, (snapshot) => {
       const data = snapshot.data();
       if (data?.strokes) {
-        setStrokes(data.strokes);
+        setLiveStrokes(data.strokes);
         redrawCanvas(data.strokes);
       }
     });
@@ -41,7 +36,7 @@ const Whiteboard = ({ boardId }) => {
     return () => unsubscribe();
   }, [boardId]);
 
-  // Redraw the entire canvas
+  // Redraw Canvas with Firestore Strokes
   const redrawCanvas = (strokes) => {
     const canvas = canvasRef.current;
     const ctx = ctxRef.current;
@@ -70,6 +65,7 @@ const Whiteboard = ({ boardId }) => {
     setIsDrawing(true);
 
     const newStroke = {
+      userId,
       tool,
       color,
       lineWidth,
@@ -84,7 +80,7 @@ const Whiteboard = ({ boardId }) => {
     if (!isDrawing) return;
 
     const { offsetX, offsetY } = nativeEvent;
-    const canvas = canvasRef.current;
+    // const canvas = canvasRef.current;
     const ctx = ctxRef.current;
 
     const updatedStrokes = [...strokes];
@@ -96,7 +92,10 @@ const Whiteboard = ({ boardId }) => {
     ctx.beginPath();
     ctx.lineWidth = currentStroke.lineWidth;
     ctx.strokeStyle = currentStroke.tool === "eraser" ? "#FFFFFF" : currentStroke.color;
-    ctx.moveTo(currentStroke.points[currentStroke.points.length - 2].x, currentStroke.points[currentStroke.points.length - 2].y);
+    ctx.moveTo(
+      currentStroke.points[currentStroke.points.length - 2].x,
+      currentStroke.points[currentStroke.points.length - 2].y
+    );
     ctx.lineTo(offsetX, offsetY);
     ctx.stroke();
   };
@@ -104,35 +103,31 @@ const Whiteboard = ({ boardId }) => {
   // Stop Drawing and Save Stroke
   const stopDrawing = async () => {
     setIsDrawing(false);
-
-    const boardRef = doc(db, "boards", boardId);
+  
+    const boardRef = doc(db, "boards", boardId); // Reference to the board document
     const lastStroke = strokes[strokes.length - 1];
-
-    // Save the last stroke to Firebase
+  
     if (lastStroke) {
-      await updateDoc(boardRef, {
-        strokes: arrayUnion(lastStroke),
-      });
+      try {
+        // Check if the document exists
+        const docSnapshot = await getDoc(boardRef);
+  
+        if (docSnapshot.exists()) {
+          // If the document exists, update it
+          await updateDoc(boardRef, {
+            strokes: arrayUnion(lastStroke),
+          });
+        } else {
+          // If the document doesn't exist, create it with initial data
+          await setDoc(boardRef, {
+            strokes: [lastStroke],
+          });
+        }
+      } catch (error) {
+        console.error("Error saving stroke to Firestore:", error);
+      }
     }
   };
-
-  // Create a new board if it doesn't exist
-  useEffect(() => {
-    const createBoard = async () => {
-      const boardRef = doc(db, "boards", boardId);
-      const boardSnap = await getDoc(boardRef);
-
-      if (!boardSnap.exists()) {
-        await setDoc(boardRef, {
-          strokes: [],
-          ownerId: "owner-id-placeholder", // Replace with actual user ID
-          editors: ["editor-id-placeholder"], // Replace with actual editor IDs
-        });
-      }
-    };
-
-    createBoard();
-  }, [boardId]);
 
   return (
     <div>
