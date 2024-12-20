@@ -1,18 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
-import { doc, updateDoc, arrayUnion, setDoc, getDoc,onSnapshot } from "firebase/firestore";
-import { db } from "../../Firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../../Firebase"; // Update this path if needed
 
-
-const Whiteboard = ({ boardId, userId }) => {
+const Whiteboard = ({ boardId }) => {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+
   const [tool, setTool] = useState("pen"); // 'pen' or 'eraser'
   const [color, setColor] = useState("#000000");
-  const [lineWidth, setLineWidth] = useState(5);
-
-  const [strokes, setStrokes] = useState([]); // Local strokes
-  const [liveStrokes, setLiveStrokes] = useState([]); // Synced strokes from Firestore
+  const [penSize, setPenSize] = useState(5); // Pen size state
+  const [eraserSize, setEraserSize] = useState(20); // Eraser size state
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [strokes, setStrokes] = useState([]); // Store strokes locally
 
   // Initialize Canvas
   useEffect(() => {
@@ -22,21 +21,26 @@ const Whiteboard = ({ boardId, userId }) => {
     const ctx = canvas.getContext("2d");
     ctx.lineCap = "round";
     ctxRef.current = ctx;
+  }, []);
 
-    // Sync strokes from Firestore
+  // Load strokes from Firestore
+  useEffect(() => {
     const boardRef = doc(db, "boards", boardId);
-    const unsubscribe = onSnapshot(boardRef, (snapshot) => {
-      const data = snapshot.data();
-      if (data?.strokes) {
-        setLiveStrokes(data.strokes);
-        redrawCanvas(data.strokes);
+
+    const unsubscribe = onSnapshot(boardRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+        setStrokes(data.strokes || []);
+        redrawCanvas(data.strokes || []);
+      } else {
+        console.log("No such document!");
       }
     });
 
     return () => unsubscribe();
   }, [boardId]);
 
-  // Redraw Canvas with Firestore Strokes
+  // Redraw the entire canvas
   const redrawCanvas = (strokes) => {
     const canvas = canvasRef.current;
     const ctx = ctxRef.current;
@@ -65,10 +69,9 @@ const Whiteboard = ({ boardId, userId }) => {
     setIsDrawing(true);
 
     const newStroke = {
-      userId,
       tool,
-      color,
-      lineWidth,
+      color: tool === "eraser" ? "#FFFFFF" : color,
+      lineWidth: tool === "eraser" ? eraserSize : penSize,
       points: [{ x: offsetX, y: offsetY }],
     };
 
@@ -80,7 +83,7 @@ const Whiteboard = ({ boardId, userId }) => {
     if (!isDrawing) return;
 
     const { offsetX, offsetY } = nativeEvent;
-    // const canvas = canvasRef.current;
+    const canvas = canvasRef.current;
     const ctx = ctxRef.current;
 
     const updatedStrokes = [...strokes];
@@ -91,7 +94,7 @@ const Whiteboard = ({ boardId, userId }) => {
 
     ctx.beginPath();
     ctx.lineWidth = currentStroke.lineWidth;
-    ctx.strokeStyle = currentStroke.tool === "eraser" ? "#FFFFFF" : currentStroke.color;
+    ctx.strokeStyle = currentStroke.color;
     ctx.moveTo(
       currentStroke.points[currentStroke.points.length - 2].x,
       currentStroke.points[currentStroke.points.length - 2].y
@@ -100,33 +103,9 @@ const Whiteboard = ({ boardId, userId }) => {
     ctx.stroke();
   };
 
-  // Stop Drawing and Save Stroke
-  const stopDrawing = async () => {
+  // Stop Drawing
+  const stopDrawing = () => {
     setIsDrawing(false);
-  
-    const boardRef = doc(db, "boards", boardId); // Reference to the board document
-    const lastStroke = strokes[strokes.length - 1];
-  
-    if (lastStroke) {
-      try {
-        // Check if the document exists
-        const docSnapshot = await getDoc(boardRef);
-  
-        if (docSnapshot.exists()) {
-          // If the document exists, update it
-          await updateDoc(boardRef, {
-            strokes: arrayUnion(lastStroke),
-          });
-        } else {
-          // If the document doesn't exist, create it with initial data
-          await setDoc(boardRef, {
-            strokes: [lastStroke],
-          });
-        }
-      } catch (error) {
-        console.error("Error saving stroke to Firestore:", error);
-      }
-    }
   };
 
   return (
@@ -135,19 +114,36 @@ const Whiteboard = ({ boardId, userId }) => {
       <div style={{ marginBottom: "10px" }}>
         <button onClick={() => setTool("pen")}>Pen</button>
         <button onClick={() => setTool("eraser")}>Eraser</button>
+
+        {/* Color Picker for Pen */}
         <input
           type="color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
           disabled={tool === "eraser"}
         />
-        <input
-          type="range"
-          min="1"
-          max="20"
-          value={lineWidth}
-          onChange={(e) => setLineWidth(e.target.value)}
-        />
+
+        {/* Pen Size Slider */}
+        {tool === "pen" && (
+          <input
+            type="range"
+            min="1"
+            max="20"
+            value={penSize}
+            onChange={(e) => setPenSize(parseInt(e.target.value))}
+          />
+        )}
+
+        {/* Eraser Size Slider */}
+        {tool === "eraser" && (
+          <input
+            type="range"
+            min="10"
+            max="50"
+            value={eraserSize}
+            onChange={(e) => setEraserSize(parseInt(e.target.value))}
+          />
+        )}
       </div>
 
       {/* Canvas */}
