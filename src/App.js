@@ -3,17 +3,36 @@ import Login from './Components/Login/Login';
 import Home from './Components/Home/Home';
 import Whiteboard from './Components/Whiteboard/Whiteboard';
 import { useState } from 'react';
-import {BrowserRouter as Router, Routes, Route} from "react-router-dom";
+import {signOut} from 'firebase/auth'
+import {auth} from './Firebase';
+import {BrowserRouter as Router, Routes, Route, Navigate} from "react-router-dom";
 function App() {
 
   const[isAuth, setIsAuth] = useState(localStorage.getItem("isAuth"));
   const boardId = "unique-board-id3"
-  const userId= "abc"
+  const userId= "abc1"
+
+  const signUserOut=()=>{
+    signOut(auth).then(()=>{
+      localStorage.clear();
+      setIsAuth(false);
+      window.location.pathname="/login";
+    })
+  }
 
   return (
     <Router>
     <Routes>
-      <Route path="/" element={<Home isAuth={isAuth}/>} />
+      <Route 
+       path="/"
+       element={
+         isAuth ? (
+           <Home user={userId} onLogout={signUserOut} />
+         ) : (
+           <Navigate to="/login" replace />
+         )
+       }
+        />
       <Route path="/whiteboard" element={<Whiteboard boardId={boardId} userId={userId}/>} />
       <Route path="/login" element={<Login setIsAuth={setIsAuth}/>} />
     </Routes>

@@ -1,0 +1,104 @@
+.home-container {
+    display: flex;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+  }
+  
+  .sidebar {
+    width: 25%; 
+    background-color: #f4f4f4; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    padding-top: 50px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .profile-picture {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%; /* Makes the image circular */
+    margin-bottom: 20px;
+    object-fit: cover;
+    border: solid black;
+  }
+  
+  .sidebar h2 {
+    margin: 10px 0;
+    font-size: 20px;
+    color: #333;
+  }
+  
+  .sidebar p {
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .logout-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #ff4d4d; /* Red button */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .logout-button:hover {
+    background-color: #ff3333;
+  }
+  
+  /* Main Content Styling */
+  .main-content {
+    width: 75%; /* Takes up the remaining 75% of the width */
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background-color: #fff;
+  }
+  
+  /* Top Box Styling */
+  .top-box {
+    width: 100%;
+    height: 150px; /* Adjust height as needed */
+    background-color: #e8f0fe; /* Light blue background */
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .top-box h3 {
+    color: #333;
+  }
+  
+  /* Cards Container Styling */
+  .cards-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 cards in a row */
+    gap: 20px; /* Space between cards */
+  }
+  
+  .card {
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .card h4 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: #333;
+  }
+  
+  .card p {
+    font-size: 14px;
+    color: #666;
+  }
+  
