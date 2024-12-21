@@ -9,7 +9,7 @@ import {BrowserRouter as Router, Routes, Route, Navigate} from "react-router-dom
 function App() {
 
   const[isAuth, setIsAuth] = useState(localStorage.getItem("isAuth"));
-  const boardId = "unique-board-id3"
+  const boardId = "board-1"
   const userId= "abc1"
 
   const signUserOut=()=>{

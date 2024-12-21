@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot ,updateDoc, arrayUnion} from "firebase/firestore";
 import { db } from "../../Firebase"; // Update this path if needed
+import "./Whiteboard.css"; // Import CSS file for cursor styling
 
 const Whiteboard = ({ boardId }) => {
   const canvasRef = useRef(null);
@@ -104,9 +105,35 @@ const Whiteboard = ({ boardId }) => {
   };
 
   // Stop Drawing
-  const stopDrawing = () => {
+  const stopDrawing = async () => {
     setIsDrawing(false);
+  
+    // Save the last stroke to Firebase
+    const boardRef = doc(db, "boards", boardId);
+    try {
+      const lastStroke = strokes[strokes.length - 1]; // Get the most recent stroke
+      await updateDoc(boardRef, {
+        strokes: arrayUnion(lastStroke), // Add the last stroke to Firestore
+      });
+    } catch (error) {
+      console.error("Error saving stroke to Firebase:", error);
+    }
   };
+  // Change cursor dynamically based on tool
+  const updateCursor = () => {
+    const canvas = canvasRef.current;
+    if (tool === "pen") {
+      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="${penSize}" width="${penSize}" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${encodeURIComponent(
+        color
+      )}" /></svg>') ${penSize / 2} ${penSize / 2}, auto`;
+    } else if (tool === "eraser") {
+      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="${eraserSize}" width="${eraserSize}" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" fill="white" stroke="black" stroke-width="5" /></svg>') ${eraserSize / 2} ${eraserSize / 2}, auto`;
+    }
+  };
+
+  useEffect(() => {
+    updateCursor();
+  }, [tool, penSize, eraserSize, color]);
 
   return (
     <div>
