@@ -1,0 +1,25 @@
+/* Hide default cursor */
+.canvas-container {
+    cursor: none;
+  }
+  
+  /* Pen cursor */
+  .pen-cursor {
+    position: absolute;
+    width: 10px; /* Adjust size for pen */
+    height: 10px;
+    background-color: black; /* Pen color */
+    border-radius: 50%;
+    pointer-events: none; /* Make it non-interactive */
+    z-index: 1000;
+  }
+  
+  /* Eraser cursor */
+  .eraser-cursor {
+    position: absolute;
+    border: 2px dashed gray; /* Eraser boundary */
+    background-color: transparent;
+    pointer-events: none;
+    z-index: 1000;
+  }
+  
