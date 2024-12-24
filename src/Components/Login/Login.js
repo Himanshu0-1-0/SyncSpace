@@ -1,13 +1,15 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import './Login.css'
 import { auth, provider } from '../../Firebase'
 import { signInWithPopup } from "firebase/auth";
 import { useNavigate } from 'react-router-dom';
+import { UserContext } from "../../UserContext";
 import image from "./image.png";
 
 const Login = ({setIsAuth}) => {
 
     let navigate=useNavigate();
+    const { setUser } = useContext(UserContext); 
 
     const signInWithGoogle= async ()=>{
         try {
@@ -17,6 +19,13 @@ const Login = ({setIsAuth}) => {
             localStorage.setItem("userName", result.user.displayName); // Save user info
             localStorage.setItem("userEmail", result.user.email);
             localStorage.setItem("userPhoto", result.user.photoURL);
+
+            setUser({
+                name: result.user.displayName || "Anonymous",
+                email: result.user.email || "No Email",
+                picture: result.user.photoURL || "",
+              });
+              
             setIsAuth(true);
             navigate("/"); // Navigate to home page after successful login
           } catch (error) {
