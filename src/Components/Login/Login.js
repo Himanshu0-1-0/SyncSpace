@@ -9,12 +9,20 @@ const Login = ({setIsAuth}) => {
 
     let navigate=useNavigate();
 
-    const signInWithGoogle=()=>{
-        signInWithPopup(auth, provider).then((result)=>{
-            localStorage.setItem("isAuth",true);
+    const signInWithGoogle= async ()=>{
+        try {
+            const result = await signInWithPopup(auth, provider);
+            // Save authentication status in localStorage and update parent state
+            localStorage.setItem("isAuth", true);
+            localStorage.setItem("userName", result.user.displayName); // Save user info
+            localStorage.setItem("userEmail", result.user.email);
+            localStorage.setItem("userPhoto", result.user.photoURL);
             setIsAuth(true);
-            navigate("/");
-        })
+            navigate("/"); // Navigate to home page after successful login
+          } catch (error) {
+            console.error("Error during login:", error);
+            alert("Login failed! Please try again.");
+          }
     }
   return (
     <div className="loginWrapper">

@@ -27,7 +27,7 @@ function App() {
        path="/"
        element={
          isAuth ? (
-           <Home user={userId} onLogout={signUserOut} />
+           <Home onLogout={signUserOut} />
          ) : (
            <Navigate to="/login" replace />
          )
