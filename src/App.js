@@ -10,7 +10,7 @@ function App() {
 
   const[isAuth, setIsAuth] = useState(localStorage.getItem("isAuth"));
   const boardId = "board-1"
-  const userId= "abc1"
+  const userId= "abc"
 
   const signUserOut=()=>{
     signOut(auth).then(()=>{

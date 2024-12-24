@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { doc, onSnapshot ,updateDoc, arrayUnion} from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "../../Firebase"; // Update this path if needed
 import "./Whiteboard.css"; // Import CSS file for cursor styling
 
-const Whiteboard = ({ boardId }) => {
+const Whiteboard = ({ boardId, userId }) => {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
 
@@ -24,15 +24,20 @@ const Whiteboard = ({ boardId }) => {
     ctxRef.current = ctx;
   }, []);
 
-  // Load strokes from Firestore
+  // Load strokes from Firestore in real-time
   useEffect(() => {
     const boardRef = doc(db, "boards", boardId);
 
     const unsubscribe = onSnapshot(boardRef, (docSnapshot) => {
       if (docSnapshot.exists()) {
         const data = docSnapshot.data();
-        setStrokes(data.strokes || []);
-        redrawCanvas(data.strokes || []);
+        const loadedStrokes = data.strokes || [];
+        setStrokes(loadedStrokes);
+
+        // Only redraw new strokes to avoid overwriting local in-progress strokes
+        loadedStrokes.forEach((stroke) => {
+          drawStrokeOnCanvas(stroke);
+        });
       } else {
         console.log("No such document!");
       }
@@ -41,27 +46,23 @@ const Whiteboard = ({ boardId }) => {
     return () => unsubscribe();
   }, [boardId]);
 
-  // Redraw the entire canvas
-  const redrawCanvas = (strokes) => {
-    const canvas = canvasRef.current;
+  // Draw a single stroke on the canvas
+  const drawStrokeOnCanvas = (stroke) => {
     const ctx = ctxRef.current;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    strokes.forEach((stroke) => {
-      ctx.beginPath();
-      ctx.lineWidth = stroke.lineWidth;
-      ctx.strokeStyle = stroke.tool === "eraser" ? "#FFFFFF" : stroke.color;
+    ctx.beginPath();
+    ctx.lineWidth = stroke.lineWidth;
+    ctx.strokeStyle = stroke.tool === "eraser" ? "#FFFFFF" : stroke.color;
 
-      stroke.points.forEach((point, index) => {
-        if (index === 0) {
-          ctx.moveTo(point.x, point.y);
-        } else {
-          ctx.lineTo(point.x, point.y);
-        }
-      });
-
-      ctx.stroke();
+    stroke.points.forEach((point, index) => {
+      if (index === 0) {
+        ctx.moveTo(point.x, point.y);
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
     });
+
+    ctx.stroke();
   };
 
   // Start Drawing
@@ -74,6 +75,7 @@ const Whiteboard = ({ boardId }) => {
       color: tool === "eraser" ? "#FFFFFF" : color,
       lineWidth: tool === "eraser" ? eraserSize : penSize,
       points: [{ x: offsetX, y: offsetY }],
+      userId, // Add userId to distinguish strokes
     };
 
     setStrokes((prev) => [...prev, newStroke]);
@@ -107,7 +109,7 @@ const Whiteboard = ({ boardId }) => {
   // Stop Drawing
   const stopDrawing = async () => {
     setIsDrawing(false);
-  
+
     // Save the last stroke to Firebase
     const boardRef = doc(db, "boards", boardId);
     try {
@@ -119,6 +121,7 @@ const Whiteboard = ({ boardId }) => {
       console.error("Error saving stroke to Firebase:", error);
     }
   };
+
   // Change cursor dynamically based on tool
   const updateCursor = () => {
     const canvas = canvasRef.current;
