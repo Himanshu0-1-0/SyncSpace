@@ -7,13 +7,14 @@ const Home = ({ onLogout }) => {
     email: "",
     picture: "",
   });
+  console.log(user)
+
 
   // Fetch user data from localStorage
   useEffect(() => {
     const userName = localStorage.getItem("userName");
     const userEmail = localStorage.getItem("userEmail");
     const userPhoto = localStorage.getItem("userPhoto");
-
     setUser({
       name: userName || "Unknown User",
       email: userEmail || "No Email Found",

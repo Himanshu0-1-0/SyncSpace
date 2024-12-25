@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { doc, onSnapshot, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "../../Firebase"; // Update this path if needed
 import "./Whiteboard.css"; // Import CSS file for cursor styling
+import StickyNotes from "./StickyNotes";
 
 const Whiteboard = ({ boardId, userId }) => {
   const canvasRef = useRef(null);
@@ -13,6 +14,7 @@ const Whiteboard = ({ boardId, userId }) => {
   const [eraserSize, setEraserSize] = useState(20); // Eraser size state
   const [isDrawing, setIsDrawing] = useState(false);
   const [strokes, setStrokes] = useState([]); // Store strokes locally
+  const [stickyNotes, setStickyNotes] = useState([]);
 
   // Initialize Canvas
   useEffect(() => {
@@ -185,6 +187,14 @@ const Whiteboard = ({ boardId, userId }) => {
         onMouseOut={stopDrawing}
         style={{ border: "1px solid #000", background: "#FFF" }}
       />
+
+      {/* Sticky Notes Component */}
+      <StickyNotes
+        boardId={boardId}
+        stickyNotes={stickyNotes}
+        setStickyNotes={setStickyNotes}
+      />
+      
     </div>
   );
 };
