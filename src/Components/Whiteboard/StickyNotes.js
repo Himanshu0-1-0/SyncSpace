@@ -1,26 +1,46 @@
-import React, { useState } from "react";
-import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from "firebase/firestore";
 import { db } from "../../Firebase"; // Update the path if necessary
-import { v4 as uuidv4 } from "uuid"; // For generating unique IDs
-import "./StickyNotes.css"; // Import CSS for resizable functionality
+import { v4 as uuidv4 } from "uuid";
+import "./StickyNotes.css";
 
-const StickyNotes = ({ boardId, stickyNotes, setStickyNotes }) => {
+const StickyNotes = ({ boardId }) => {
+  const [stickyNotes, setStickyNotes] = useState([]);
+
+  // Fetch sticky notes from Firebase on component load
+  useEffect(() => {
+    const fetchStickyNotes = async () => {
+      const boardRef = doc(db, "boards", boardId);
+      try {
+        const boardDoc = await getDoc(boardRef);
+        if (boardDoc.exists()) {
+          const data = boardDoc.data();
+          setStickyNotes(data.stickyNotes || []); // Load sticky notes or empty array
+        } else {
+          console.error("No such board document!");
+        }
+      } catch (error) {
+        console.error("Error fetching sticky notes:", error);
+      }
+    };
+
+    fetchStickyNotes();
+  }, [boardId]); // Re-run only when boardId changes
+
   // Add a new sticky note
   const addStickyNote = async () => {
     const newStickyNote = {
-      id: uuidv4(), // Unique ID for the note
+      id: uuidv4(),
       content: "New Note",
-      x: 100, // Default position
-      y: 100, // Default position
-      width: 150, // Default width
-      height: 150, // Default height
-      color: "rgb(240, 240, 240)", // Fixed light gray color
+      x: 100,
+      y: 100,
+      width: 150,
+      height: 150,
+      color: "rgb(240, 240, 240)",
     };
 
-    // Update local state
     setStickyNotes((prev) => [...prev, newStickyNote]);
 
-    // Save to Firestore
     const boardRef = doc(db, "boards", boardId);
     try {
       await updateDoc(boardRef, {
@@ -38,7 +58,6 @@ const StickyNotes = ({ boardId, stickyNotes, setStickyNotes }) => {
     );
     setStickyNotes(updatedNotes);
 
-    // Save to Firestore
     const boardRef = doc(db, "boards", boardId);
     try {
       await updateDoc(boardRef, { stickyNotes: updatedNotes });
@@ -54,7 +73,6 @@ const StickyNotes = ({ boardId, stickyNotes, setStickyNotes }) => {
     );
     setStickyNotes(updatedNotes);
 
-    // Save to Firestore
     const boardRef = doc(db, "boards", boardId);
     try {
       await updateDoc(boardRef, { stickyNotes: updatedNotes });
@@ -70,7 +88,6 @@ const StickyNotes = ({ boardId, stickyNotes, setStickyNotes }) => {
     );
     setStickyNotes(updatedNotes);
 
-    // Save to Firestore
     const boardRef = doc(db, "boards", boardId);
     try {
       await updateDoc(boardRef, { stickyNotes: updatedNotes });
@@ -85,7 +102,6 @@ const StickyNotes = ({ boardId, stickyNotes, setStickyNotes }) => {
     const updatedNotes = stickyNotes.filter((note) => note.id !== id);
     setStickyNotes(updatedNotes);
 
-    // Remove from Firestore
     const boardRef = doc(db, "boards", boardId);
     try {
       await updateDoc(boardRef, {
@@ -99,7 +115,7 @@ const StickyNotes = ({ boardId, stickyNotes, setStickyNotes }) => {
   return (
     <div>
       {/* Button to Add a New Sticky Note */}
-      <button onClick={addStickyNote} className="add-sticky-note-btn">
+      <button onClick={addStickyNote} style={{ marginBottom: "10px" }}>
         Add Sticky Note
       </button>
 
@@ -109,14 +125,18 @@ const StickyNotes = ({ boardId, stickyNotes, setStickyNotes }) => {
           key={note.id}
           className="sticky-note"
           style={{
+            position: "absolute",
             left: note.x,
             top: note.y,
             width: note.width,
             height: note.height,
-            backgroundColor: note.color,
+            background: note.color,
+            padding: "10px",
+            cursor: "move",
+            borderRadius: "5px",
+            boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
           }}
           draggable
-          // Update position on drag end
           onDragEnd={(e) =>
             updateStickyNotePosition(note.id, e.clientX, e.clientY)
           }
@@ -125,40 +145,31 @@ const StickyNotes = ({ boardId, stickyNotes, setStickyNotes }) => {
           <div
             contentEditable
             suppressContentEditableWarning
-            className="sticky-note-content"
+            style={{
+              width: "100%",
+              height: "80%",
+              overflow: "auto",
+              outline: "none",
+            }}
             onBlur={(e) => updateStickyNoteContent(note.id, e.target.innerText)}
           >
             {note.content}
           </div>
 
-          {/* Resize Handle */}
-          <div
-            className="resize-handle"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              const startX = e.clientX;
-              const startY = e.clientY;
-
-              const resize = (event) => {
-                const newWidth = Math.max(100, note.width + event.clientX - startX);
-                const newHeight = Math.max(100, note.height + event.clientY - startY);
-
-                updateStickyNoteSize(note.id, newWidth, newHeight);
-              };
-
-              const stopResize = () => {
-                window.removeEventListener("mousemove", resize);
-                window.removeEventListener("mouseup", stopResize);
-              };
-
-              window.addEventListener("mousemove", resize);
-              window.addEventListener("mouseup", stopResize);
-            }}
-          ></div>
-
           {/* Delete Button */}
           <button
-            className="delete-btn"
+            style={{
+              position: "absolute",
+              top: "-10px",
+              right: "-10px",
+              cursor: "pointer",
+              background: "red",
+              color: "white",
+              borderRadius: "50%",
+              border: "none",
+              width: "20px",
+              height: "20px",
+            }}
             onClick={() => deleteStickyNote(note.id)}
           >
             X
